@@ -1,8 +1,3 @@
-// TODO: correct dangling comment
-/**
- * SMSC.UA API (smsc.ua) version 1.4 (20/10/2020) SMSC's sms sender package
- */
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -64,7 +59,7 @@ public class SMSCSender {
         String[] m = {};
 
         try {
-            m = sendSMSCCommand("send", "cost=3&phones=" + URLEncoder.encode(phones, smscCharset)
+            m = send("send", "cost=3&phones=" + URLEncoder.encode(phones, smscCharset)
                 + "&mes=" + URLEncoder.encode(message, smscCharset)
                 + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
                 + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
@@ -112,7 +107,7 @@ public class SMSCSender {
         String[] m = {};
 
         try {
-            m = sendSMSCCommand("send", "cost=1&phones=" + URLEncoder.encode(phones, smscCharset)
+            m = send("send", "cost=1&phones=" + URLEncoder.encode(phones, smscCharset)
                 + "&mes=" + URLEncoder.encode(message, smscCharset)
                 + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
                 + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
@@ -159,7 +154,7 @@ public class SMSCSender {
         String tmp;
 
         try {
-            m = sendSMSCCommand("status", "phone=" + URLEncoder.encode(phone, smscCharset) + "&id=" + id + "&all=" + all);
+            m = send("status", "phone=" + URLEncoder.encode(phone, smscCharset) + "&id=" + id + "&all=" + all);
 
             if (m.length > 1) {
                 if (smscDebug) {
@@ -196,7 +191,7 @@ public class SMSCSender {
     public String getBalance() {
         String[] m = {};
 
-        m = sendSMSCCommand("balance", ""); // (balance) или (0, -error)
+        m = send("balance", ""); // (balance) или (0, -error)
 
         if (m.length >= 1) {
             if (smscDebug) {
@@ -217,32 +212,40 @@ public class SMSCSender {
      * @param cmd - required command
      * @param arg - additional arguments
      */
-
-    private String[] sendSMSCCommand(String cmd, String arg){
-        /* String[] m = {}; */
+    private String[] send(String cmd, String arg) {
         String ret = ",";
 
         try {
-            String _url = (SMSC_HTTPS ? "https" : "http") + "://smsc.ua/sys/" + cmd +".php?login=" + URLEncoder.encode(smscLogin, smscCharset)
+            final String protocol = SMSC_HTTPS ? "https" : "http";
+
+            final String url = protocol + "://smsc.ua/sys/" + cmd +".php?login=" + URLEncoder.encode(smscLogin, smscCharset)
                 + "&psw=" + URLEncoder.encode(smscPassword, smscCharset)
                 + "&fmt=1&charset=" + smscCharset + "&" + arg;
 
-            String url = _url;
-            int i = 0;
-            do {
-                if (i++ > 0) {
-                    url = _url;
-                    url = url.replace("://smsc.ua/", "://www" + (i) + ".smsc.ua/");
-                }
-                ret = smscReadUrl(url);
-            }
-            while (ret == "" && i < 5);
+            ret = send(url, 0);
         }
         catch (UnsupportedEncodingException e) {
 
         }
 
         return ret.split(",");
+    }
+
+    private String send(String url, int retriesCount) {
+        if (retriesCount == 5) {
+            return "";
+        }
+
+        final String urlToSend = retriesCount > 0
+            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
+            : url;
+
+        final String response = smscReadUrl(urlToSend);
+
+        if ("".equals(response))
+            return send(url, retriesCount + 1);
+
+        return response;
     }
 
     /**
