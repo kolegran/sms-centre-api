@@ -42,14 +42,14 @@ public class SMSCSender {
     /**
      * SMS Sending
      *
-     * @param phones - list of phones through comma or semicolon
-     * @param message - the message to be send
+     * @param phones          - list of phones through comma or semicolon
+     * @param message         - the message to be send
      * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param time - required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
-     * @param id - message id
-     * @param format - message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query - additional request parameters ("valid=01:00&maxsms=3&tz=2")
+     * @param time            - required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
+     * @param id              - message id
+     * @param format          - message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query           - additional request parameters ("valid=01:00&maxsms=3&tz=2")
      * @return array (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
      * array (<id>, <error code>) in case of error
      */
@@ -59,30 +59,27 @@ public class SMSCSender {
         String[] m = {};
 
         try {
-            m = send("send", "cost=3&phones=" + URLEncoder.encode(phones, smscCharset)
-                + "&mes=" + URLEncoder.encode(message, smscCharset)
-                + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
-                + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
-                + (time == "" ? "" : "&time=" + URLEncoder.encode(time, smscCharset) )
-                + (query == "" ? "" : "&" + query));
-        }
-        catch (UnsupportedEncodingException e) {
+            m = sendSMSCCommand("send", "cost=3&phones=" + URLEncoder.encode(phones, smscCharset)
+                    + "&mes=" + URLEncoder.encode(message, smscCharset)
+                    + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
+                    + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
+                    + (time == "" ? "" : "&time=" + URLEncoder.encode(time, smscCharset))
+                    + (query == "" ? "" : "&" + query));
+        } catch (UnsupportedEncodingException e) {
 
         }
 
         if (m.length > 1) {
             if (smscDebug) {
                 if (Integer.parseInt(m[1]) > 0) {
-                    System.out.println("Сообщение отправлено успешно. ID: " + m[0] + ", всего SMS: " + m[1] + ", стоимость: " + m[2] + ", баланс: " + m[3]);
-                }
-                else {
+                    System.out.println("SMS send successful. ID: " + m[0] + ", amount of SMS: " + m[1] + ", cost: " + m[2] + ", balance: " + m[3]);
+                } else {
                     System.out.print("Ошибка №" + Math.abs(Integer.parseInt(m[1])));
-                    System.out.println(Integer.parseInt(m[0])>0 ? (", ID: " + m[0]) : "");
+                    System.out.println(Integer.parseInt(m[0]) > 0 ? (", ID: " + m[0]) : "");
                 }
             }
-        }
-        else {
-            System.out.println("Не получен ответ от сервера.");
+        } else {
+            System.out.println("Server is not responding");
         }
 
         return m;
@@ -91,55 +88,51 @@ public class SMSCSender {
     /**
      * Get SMS cost
      *
-     * @param phones - list of phones through comma or semicolon
-     * @param message - the message to be send
+     * @param phones          - list of phones through comma or semicolon
+     * @param message         - the message to be send
      * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param format - message format (0 - обычное sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query - additional request parameters ("list=79999999999:Ваш пароль: 123\n78888888888:Ваш пароль: 456")
+     * @param format          - message format (0 - обычное sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query           - additional request parameters ("list=79999999999:Ваш пароль: 123\n78888888888:Ваш пароль: 456")
      * @return array (<cost>, <amount of sms>) in case of successful sending
      * array (0, <error code>) in case of error
      */
 
-    public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query)
-    {
+    public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query) {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
         try {
             m = send("send", "cost=1&phones=" + URLEncoder.encode(phones, smscCharset)
-                + "&mes=" + URLEncoder.encode(message, smscCharset)
-                + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
-                + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
-                + (query == "" ? "" : "&" + query));
+                    + "&mes=" + URLEncoder.encode(message, smscCharset)
+                    + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
+                    + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
+                    + (query == "" ? "" : "&" + query));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        catch (UnsupportedEncodingException e) {
-
-        }
-        // (cost, cnt) или (0, -error)
+        // (cost, cnt) or (0, -error)
 
         if (m.length > 1) {
             if (smscDebug) {
                 if (Integer.parseInt(m[1]) > 0)
-                    System.out.println("Стоимость рассылки: " + m[0] + ", Всего SMS: " + m[1]);
-
-                else
-                    System.out.print("Ошибка №" + Math.abs(Integer.parseInt(m[1])));
-            }
+                    System.out.println("Cost of mailing: " + m[0] + ", Amount of SMS: " + m[1]);
+            } else
+                System.out.print("Error code " + Math.abs(Integer.parseInt(m[1])));
+        } else {
+            System.out.println("Server is not responding");
         }
-        else
-            System.out.println("Не получен ответ от сервера.");
-
         return m;
     }
+
 
     /**
      * Checking the status of a sent SMS or HLR request
      *
-     * @param id - message id
+     * @param id    - message id
      * @param phone - phone number
-     * @param all - additionally, the elements at the end of the array are returned:
-     *  (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
+     * @param all   - additionally, the elements at the end of the array are returned:
+     *              (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
      * @return array
      * (<status>, <change time>, <sms error code>) for sent SMS
      * (<status>, <change time>, <sms error code>, <country code of registration>, <subscriber operator code>,
@@ -148,8 +141,7 @@ public class SMSCSender {
      * or array(0, <error code>) in case of error
      */
 
-    public String[] getStatus(int id, String phone, int all)
-    {
+    public String[] getStatus(int id, String phone, int all) {
         String[] m = {};
         String tmp;
 
@@ -160,22 +152,18 @@ public class SMSCSender {
                 if (smscDebug) {
                     if (m[1] != "" && Integer.parseInt(m[1]) >= 0) {
                         java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(Integer.parseInt(m[1]));
-                        System.out.println("Статус SMS = " + m[0]);
-                    }
-                    else
-                        System.out.println("Ошибка №" + Math.abs(Integer.parseInt(m[1])));
+                        System.out.println("SMS status: " + m[0]);
+                    } else
+                        System.out.println("Error code" + Math.abs(Integer.parseInt(m[1])));
                 }
 
                 if (all == 1 && m.length > 9 && (m.length < 14 || m[14] != "HLR")) {
                     tmp = implode(m, ",");
                     m = tmp.split(",", 9);
                 }
-            }
-            else
-                System.out.println("Не получен ответ от сервера.");
-
-        }
-        catch (UnsupportedEncodingException e) {
+            } else
+                System.out.println("Server is not responding");
+        } catch (UnsupportedEncodingException e) {
 
         }
 
@@ -189,26 +177,25 @@ public class SMSCSender {
      */
 
     public String getBalance() {
-        String[] m = {};
-
-        m = send("balance", ""); // (balance) или (0, -error)
+        String[] m = send("balance", ""); // (balance) или (0, -error)
 
         if (m.length >= 1) {
             if (smscDebug) {
-                if (m.length == 1)
-                    System.out.println("Сумма на счете: " + m[0]);
-                else
-                    System.out.println("Ошибка №" + Math.abs(Integer.parseInt(m[1])));
+                if (m.length == 1) {
+                    System.out.println("Balance : " + m[0]);
+                } else {
+                    System.out.println("Error: " + Math.abs(Integer.parseInt(m[1])));
+                }
+            } else {
+                System.out.println("Server is not responding!");
             }
         }
-        else {
-            System.out.println("Не получен ответ от сервера.");
-        }
-        return m.length == 2 ?	"" : m[0];
+        return m.length == 2 ? "" : m[0];
     }
 
     /**
      * Building and sending a request
+     *
      * @param cmd - required command
      * @param arg - additional arguments
      */
@@ -250,6 +237,7 @@ public class SMSCSender {
 
     /**
      * URL Reading
+     *
      * @param url - message ID
      * @return line - server response
      */
@@ -260,7 +248,7 @@ public class SMSCSender {
         boolean is_post = (SMSC_POST || url.length() > 2000);
 
         if (is_post) {
-            param = url.split("\\?",2);
+            param = url.split("\\?", 2);
             real_url = param[0];
         }
 
@@ -268,7 +256,7 @@ public class SMSCSender {
             URL u = new URL(real_url);
             InputStream is;
 
-            if (is_post){
+            if (is_post) {
                 URLConnection conn = u.openConnection();
                 conn.setDoOutput(true);
                 OutputStreamWriter os = new OutputStreamWriter(conn.getOutputStream(), smscCharset);
@@ -277,8 +265,7 @@ public class SMSCSender {
                 os.close();
                 System.out.println("post");
                 is = conn.getInputStream();
-            }
-            else {
+            } else {
                 is = u.openStream();
             }
 
@@ -293,8 +280,7 @@ public class SMSCSender {
         }
         catch (MalformedURLException e) { // Неверно урл, протокол...
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
 
         }
 
