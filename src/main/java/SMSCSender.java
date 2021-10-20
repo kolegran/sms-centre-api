@@ -31,6 +31,19 @@ public class SMSCSender {
         this.smscPassword = password;
     }
 
+    public SMSCSender(String login, String password, String charset) {
+        this.smscLogin = login;
+        this.smscPassword = password;
+        this.smscCharset = charset;
+    }
+
+    public SMSCSender(String login, String password, String charset, boolean debug) {
+        this.smscLogin = login;
+        this.smscPassword = password;
+        this.smscCharset = charset;
+        this.smscDebug = debug;
+    }
+
     /**
      * SMS Sending
      *
