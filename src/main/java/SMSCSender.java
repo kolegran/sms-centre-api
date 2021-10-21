@@ -12,6 +12,9 @@ public class SMSCSender {
 
     private static final boolean SMSC_HTTPS = false;
     private static final boolean SMSC_POST = false;
+    private static final int MAX_RETRIES_COUNT = 5;
+    private static final String EMPTY_RESPONSE = "";
+    private static final String EMPTY = "";
 
     private String smscLogin = "login";
     private String smscPassword = "password";
@@ -53,21 +56,16 @@ public class SMSCSender {
      * @return array (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
      * array (<id>, <error code>) in case of error
      */
-
     public String[] sendSms(String phones, String message, int transliteration, String time, String id, int format, String sender, String query) {
         final String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        try {
-            m = sendSMSCCommand("send", "cost=3&phones=" + URLEncoder.encode(phones, smscCharset)
-                    + "&mes=" + URLEncoder.encode(message, smscCharset)
-                    + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
-                    + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
-                    + (time == "" ? "" : "&time=" + URLEncoder.encode(time, smscCharset))
-                    + (query == "" ? "" : "&" + query));
-        } catch (UnsupportedEncodingException e) {
-
-        }
+        m = send("send", "cost=3&phones=" + encode(phones)
+            + "&mes=" + encode(message)
+            + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
+            + (sender == "" ? "" : "&sender=" + encode(sender))
+            + (time == "" ? "" : "&time=" + encode(time))
+            + (query == "" ? "" : "&" + query));
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -81,7 +79,6 @@ public class SMSCSender {
         } else {
             System.out.println("Server is not responding");
         }
-
         return m;
     }
 
@@ -97,21 +94,15 @@ public class SMSCSender {
      * @return array (<cost>, <amount of sms>) in case of successful sending
      * array (0, <error code>) in case of error
      */
-
     public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query) {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        try {
-            m = send("send", "cost=1&phones=" + URLEncoder.encode(phones, smscCharset)
-                    + "&mes=" + URLEncoder.encode(message, smscCharset)
-                    + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
-                    + (sender == "" ? "" : "&sender=" + URLEncoder.encode(sender, smscCharset))
-                    + (query == "" ? "" : "&" + query));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        // (cost, cnt) or (0, -error)
+        m = send("send", "cost=1&phones=" + encode(phones)
+            + "&mes=" + encode(message)
+            + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
+            + (sender == "" ? "" : "&sender=" + encode(sender))
+            + (query == "" ? "" : "&" + query));
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -140,32 +131,27 @@ public class SMSCSender {
      * <SIM card IMSI code>, <service center number>) for HLR request
      * or array(0, <error code>) in case of error
      */
-
     public String[] getStatus(int id, String phone, int all) {
         String[] m = {};
         String tmp;
 
-        try {
-            m = send("status", "phone=" + URLEncoder.encode(phone, smscCharset) + "&id=" + id + "&all=" + all);
+        m = send("status", "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
 
-            if (m.length > 1) {
-                if (smscDebug) {
-                    if (m[1] != "" && Integer.parseInt(m[1]) >= 0) {
-                        java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(Integer.parseInt(m[1]));
-                        System.out.println("SMS status: " + m[0]);
-                    } else
-                        System.out.println("Error code" + Math.abs(Integer.parseInt(m[1])));
-                }
+        if (m.length > 1) {
+            if (smscDebug) {
+                if (m[1] != "" && Integer.parseInt(m[1]) >= 0) {
+                    java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(Integer.parseInt(m[1]));
+                    System.out.println("SMS status: " + m[0]);
+                } else
+                    System.out.println("Error code" + Math.abs(Integer.parseInt(m[1])));
+            }
 
-                if (all == 1 && m.length > 9 && (m.length < 14 || m[14] != "HLR")) {
-                    tmp = implode(m, ",");
-                    m = tmp.split(",", 9);
-                }
-            } else
-                System.out.println("Server is not responding");
-        } catch (UnsupportedEncodingException e) {
-
-        }
+            if (all == 1 && m.length > 9 && (m.length < 14 || m[14] != "HLR")) {
+                tmp = implode(m, ",");
+                m = tmp.split(",", 9);
+            }
+        } else
+            System.out.println("Server is not responding");
 
         return m;
     }
@@ -175,9 +161,8 @@ public class SMSCSender {
      *
      * @return String balance or empty line in case of error
      */
-
     public String getBalance() {
-        String[] m = send("balance", ""); // (balance) или (0, -error)
+        String[] m = send("balance", "");
 
         if (m.length >= 1) {
             if (smscDebug) {
@@ -196,42 +181,38 @@ public class SMSCSender {
     /**
      * Building and sending a request
      *
-     * @param cmd - required command
-     * @param arg - additional arguments
+     * @param cmd
+     *        Required command
+     * @param arg
+     *        Additional arguments
+     *
+     * @return The resultant String array
+     *
+     * @exception CharsetEncodingException may produce encode(String) method
      */
     private String[] send(String cmd, String arg) {
-        String ret = ",";
+        final String protocol = SMSC_HTTPS ? "https" : "http";
 
-        try {
-            final String protocol = SMSC_HTTPS ? "https" : "http";
+        final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
+            + "&psw=" + encode(smscPassword)
+            + "&fmt=1&charset=" + smscCharset + "&" + arg;
 
-            final String url = protocol + "://smsc.ua/sys/" + cmd +".php?login=" + URLEncoder.encode(smscLogin, smscCharset)
-                + "&psw=" + URLEncoder.encode(smscPassword, smscCharset)
-                + "&fmt=1&charset=" + smscCharset + "&" + arg;
-
-            ret = send(url, 0);
-        }
-        catch (UnsupportedEncodingException e) {
-
-        }
-
-        return ret.split(",");
+        return send(url, 0).split(",");
     }
 
     private String send(String url, int retriesCount) {
-        if (retriesCount == 5) {
-            return "";
+        if (retriesCount == MAX_RETRIES_COUNT) {
+            return EMPTY_RESPONSE;
         }
 
         final String urlToSend = retriesCount > 0
-            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
+            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/") // use URL to another server, ex. www2.smsc.ua
             : url;
 
         final String response = smscReadUrl(urlToSend);
-
-        if ("".equals(response))
+        if (EMPTY.equals(response)) {
             return send(url, retriesCount + 1);
-
+        }
         return response;
     }
 
@@ -273,12 +254,11 @@ public class SMSCSender {
 
             int ch;
             while ((ch = reader.read()) != -1) {
-                line += (char)ch;
+                line += (char) ch;
             }
 
             reader.close();
-        }
-        catch (MalformedURLException e) { // Неверно урл, протокол...
+        } catch (MalformedURLException e) {
 
         } catch (IOException e) {
 
@@ -297,5 +277,20 @@ public class SMSCSender {
         }
 
         return out;
+    }
+
+    private String encode(String str) {
+        try {
+            return URLEncoder.encode(str, smscCharset);
+        } catch (UnsupportedEncodingException e) {
+            throw new CharsetEncodingException("Unsupportable SMSC Charset", e);
+        }
+    }
+
+    private static final class CharsetEncodingException extends RuntimeException {
+
+        public CharsetEncodingException(String message, Exception exception) {
+            super(message, exception);
+        }
     }
 }
