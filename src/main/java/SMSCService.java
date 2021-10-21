@@ -1,12 +1,6 @@
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -15,10 +9,13 @@ import java.net.http.HttpResponse;
 public class SMSCService {
 
     private static final String CONTENT_TYPE_VALUE = "application/json";
+    private static final int NUMBER_OF_PATTERN_APPLYING = 2;
+    private static final String SPLIT_URL_REGEX = "\\?";
     private static final String EMPTY_RESPONSE = "";
     private static final boolean SMSC_HTTPS = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
+    private static final int URL_MAX_LENGTH = 2000;
     private static final String EMPTY = "";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -67,7 +64,7 @@ public class SMSCService {
         final String[] formats = {"", "sms=1", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        m = send("send", "cost=0&phones=" + encode(phones)
+        m = send("send", "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
             + (sender == "" ? "" : "&sender=" + encode(sender))
@@ -195,10 +192,10 @@ public class SMSCService {
      *
      * @return The resultant String array
      *
-     * @exception CharsetEncodingException may produce encode(String) method
+     * @exception CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
      */
     private String[] send(String cmd, String args) {
-        // TODO: check https
+        // TODO: check case with https
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
         final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
@@ -208,16 +205,26 @@ public class SMSCService {
         return send(url, 0).split(",");
     }
 
+    /**
+     * Select URL to another server (ex. www2.smsc.ua) and then calling SMSCService#send(java.lang.String)
+     *
+     * @param url
+     *        Message ID
+     * @param retriesCount
+     *        Count of retries
+     *
+     * @return The resultant String
+     */
     private String send(String url, int retriesCount) {
         if (retriesCount == MAX_RETRIES_COUNT) {
             return EMPTY_RESPONSE;
         }
 
         final String urlToSend = retriesCount > 0
-            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/") // select URL to another server, ex. www2.smsc.ua
+            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
             : url;
 
-        final String response = smscReadUrl(urlToSend);
+        final String response = send(urlToSend);
         if (EMPTY.equals(response)) {
             return send(url, retriesCount + 1);
         }
@@ -225,55 +232,52 @@ public class SMSCService {
     }
 
     /**
-     * URL Reading
+     * Send Http Request
      *
      * @param url
      *        Message ID
      *
      * @return The resultant String
      */
-    private String smscReadUrl(String url) {
-        String line = "", real_url = url;
-        String[] param = {};
-        boolean is_post = (SMSC_POST || url.length() > 2000);
-
-        if (is_post) {
-            param = url.split("\\?", 2);
-            real_url = param[0];
-        }
-
+    private String send(String url) {
+        final HttpRequest request = getHttpRequestBuilder(url)
+            .header("Content-Type", CONTENT_TYPE_VALUE)
+            .build();
         try {
-            URL u = new URL(real_url);
-            InputStream is;
-
-            if (is_post) {
-                URLConnection conn = u.openConnection();
-                conn.setDoOutput(true);
-                OutputStreamWriter os = new OutputStreamWriter(conn.getOutputStream(), smscCharset);
-                os.write(param[1]);
-                os.flush();
-                os.close();
-                System.out.println("post");
-                is = conn.getInputStream();
-            } else {
-                is = u.openStream();
-            }
-
-            InputStreamReader reader = new InputStreamReader(is, smscCharset);
-
-            int ch;
-            while ((ch = reader.read()) != -1) {
-                line += (char) ch;
-            }
-
-            reader.close();
-        } catch (MalformedURLException e) {
-
-        } catch (IOException e) {
-
+            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        } catch (IOException exception) {
+            throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new InterruptSendingException("Message sending has been interrupted", exception);
         }
+    }
 
-        return line;
+    /**
+     * Select POST or GET method by checking SMSC_POST or length of URL
+     *
+     * @param url
+     *        Message ID
+     *
+     * @return The resultant HttpRequest.Builder
+     */
+    private HttpRequest.Builder getHttpRequestBuilder(String url) {
+        final HttpRequest.Builder httpRequestBuilder = HttpRequest.newBuilder();
+        if (SMSC_POST || url.length() > URL_MAX_LENGTH) {
+            // TODO: find use case for this way
+            final String[] splittedUrl = url.split(SPLIT_URL_REGEX, NUMBER_OF_PATTERN_APPLYING);
+            final String context = splittedUrl[0];
+            final String requestParameters = splittedUrl[1];
+            httpRequestBuilder
+                .uri(URI.create(context))
+                .POST(HttpRequest.BodyPublishers.ofString(requestParameters));
+        } else {
+            httpRequestBuilder
+                .uri(URI.create(url))
+                .GET();
+        }
+        return httpRequestBuilder;
     }
 
     private String implode(String[] ary, String delim) {
@@ -286,22 +290,6 @@ public class SMSCService {
         }
 
         return out;
-    }
-
-    private String send(String url) {
-        final HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("Content-Type", CONTENT_TYPE_VALUE)
-            .build();
-        try {
-            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.body();
-        } catch (IOException exception) {
-            throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new InterruptSendingException("Message sending has been interrupted", exception);
-        }
     }
 
     private String encode(String str) {
