@@ -1,3 +1,6 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,6 +17,7 @@ import java.net.http.HttpResponse;
 
 public class SMSCService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SMSCService.class);
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final String EMPTY_RESPONSE = "";
     private static final boolean SMSC_HTTPS = false;
