@@ -4,38 +4,45 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
-public class SMSCSender {
+public class SMSCService {
 
+    private static final String CONTENT_TYPE_VALUE = "application/json";
+    private static final String EMPTY_RESPONSE = "";
     private static final boolean SMSC_HTTPS = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
-    private static final String EMPTY_RESPONSE = "";
     private static final String EMPTY = "";
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private String smscLogin = "login";
     private String smscPassword = "password";
     private String smscCharset = "utf-8";
     private boolean smscDebug = false;
 
-    public SMSCSender() {
+    public SMSCService() {
     }
 
-    public SMSCSender(String login, String password) {
+    public SMSCService(String login, String password) {
         this.smscLogin = login;
         this.smscPassword = password;
     }
 
-    public SMSCSender(String login, String password, String charset) {
+    public SMSCService(String login, String password, String charset) {
         this.smscLogin = login;
         this.smscPassword = password;
         this.smscCharset = charset;
     }
 
-    public SMSCSender(String login, String password, String charset, boolean debug) {
+    public SMSCService(String login, String password, String charset, boolean debug) {
         this.smscLogin = login;
         this.smscPassword = password;
         this.smscCharset = charset;
@@ -57,10 +64,10 @@ public class SMSCSender {
      * array (<id>, <error code>) in case of error
      */
     public String[] sendSms(String phones, String message, int transliteration, String time, String id, int format, String sender, String query) {
-        final String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
+        final String[] formats = {"", "sms=1", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        m = send("send", "cost=3&phones=" + encode(phones)
+        m = send("send", "cost=0&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
             + (sender == "" ? "" : "&sender=" + encode(sender))
@@ -183,19 +190,19 @@ public class SMSCSender {
      *
      * @param cmd
      *        Required command
-     * @param arg
+     * @param args
      *        Additional arguments
      *
      * @return The resultant String array
      *
      * @exception CharsetEncodingException may produce encode(String) method
      */
-    private String[] send(String cmd, String arg) {
+    private String[] send(String cmd, String args) {
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
         final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
             + "&psw=" + encode(smscPassword)
-            + "&fmt=1&charset=" + smscCharset + "&" + arg;
+            + "&fmt=1&charset=" + smscCharset + "&" + args;
 
         return send(url, 0).split(",");
     }
@@ -206,7 +213,7 @@ public class SMSCSender {
         }
 
         final String urlToSend = retriesCount > 0
-            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/") // use URL to another server, ex. www2.smsc.ua
+            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/") // select URL to another server, ex. www2.smsc.ua
             : url;
 
         final String response = smscReadUrl(urlToSend);
@@ -219,11 +226,12 @@ public class SMSCSender {
     /**
      * URL Reading
      *
-     * @param url - message ID
-     * @return line - server response
+     * @param url
+     *        Message ID
+     *
+     * @return The resultant String
      */
     private String smscReadUrl(String url) {
-
         String line = "", real_url = url;
         String[] param = {};
         boolean is_post = (SMSC_POST || url.length() > 2000);
@@ -279,17 +287,47 @@ public class SMSCSender {
         return out;
     }
 
+    private String send(String url) {
+        final HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Content-Type", CONTENT_TYPE_VALUE)
+            .build();
+        try {
+            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        } catch (IOException exception) {
+            throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new InterruptSendingException("Message sending has been interrupted", exception);
+        }
+    }
+
     private String encode(String str) {
         try {
             return URLEncoder.encode(str, smscCharset);
-        } catch (UnsupportedEncodingException e) {
-            throw new CharsetEncodingException("Unsupportable SMSC Charset", e);
+        } catch (UnsupportedEncodingException exception) {
+            throw new CharsetEncodingException("Unsupportable SMSC Charset", exception);
         }
     }
 
     private static final class CharsetEncodingException extends RuntimeException {
 
         public CharsetEncodingException(String message, Exception exception) {
+            super(message, exception);
+        }
+    }
+
+    private static final class CannotSendMessageException extends RuntimeException {
+
+        public CannotSendMessageException(String message, Exception exception) {
+            super(message, exception);
+        }
+    }
+
+    private static final class InterruptSendingException extends RuntimeException {
+
+        public InterruptSendingException(String message, Exception exception) {
             super(message, exception);
         }
     }
