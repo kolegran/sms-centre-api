@@ -198,6 +198,7 @@ public class SMSCService {
      * @exception CharsetEncodingException may produce encode(String) method
      */
     private String[] send(String cmd, String args) {
+        // TODO: check https
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
         final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
