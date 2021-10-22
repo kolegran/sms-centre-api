@@ -2,14 +2,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -19,10 +13,13 @@ public class SMSCService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SMSCService.class);
     private static final String CONTENT_TYPE_VALUE = "application/json";
+    private static final int NUMBER_OF_PATTERN_APPLYING = 2;
+    private static final String SPLIT_URL_REGEX = "\\?";
     private static final String EMPTY_RESPONSE = "";
     private static final boolean SMSC_HTTPS = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
+    private static final int URL_MAX_LENGTH = 2000;
     private static final String EMPTY = "";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -56,27 +53,30 @@ public class SMSCService {
     /**
      * SMS Sending
      *
-     * @param phones          - list of phones through comma or semicolon
-     * @param message         - the message to be send
-     * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param time            - required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
-     * @param id              - message id
-     * @param format          - message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query           - additional request parameters ("valid=01:00&maxsms=3&tz=2")
-     * @return array (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
-     * array (<id>, <error code>) in case of error
+     * @param phones          List of phones through comma or semicolon
+     * @param message         The message to be send
+     * @param transliteration Converting into transliteration (0, 1 or 2)
+     * @param time            Required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
+     * @param id              Message ID
+     * @param messageFormat   MessageFormat
+     * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query           Additional request parameters
+     * @return The resultant String array
+     * <p>
+     * (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
+     * <p>
+     * (<id>, <error code>) in case of error
      */
-    public String[] sendSms(String phones, String message, int transliteration, String time, String id, int format, String sender, String query) {
-        final String[] formats = {"", "sms=1", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
-        String[] m = {};
+    public String[] send(String phones, String message, int transliteration, String time, String id, MessageFormat messageFormat, String sender, String query) {
+        final String format = messageFormat.getFormat();
+        final String formatToSend = format.isEmpty() ? EMPTY : "&" + format;
 
-        m = send("send", "cost=0&phones=" + encode(phones)
+        final String[] m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
-            + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
-            + (sender == "" ? "" : "&sender=" + encode(sender))
-            + (time == "" ? "" : "&time=" + encode(time))
-            + (query == "" ? "" : "&" + query));
+            + "&translit=" + transliteration + "&id=" + id + formatToSend
+            + (EMPTY.equals(sender) ? EMPTY : "&sender=" + encode(sender))
+            + (EMPTY.equals(time) ? EMPTY : "&time=" + encode(time))
+            + (EMPTY.equals(query) ? EMPTY : "&" + query));
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -96,20 +96,23 @@ public class SMSCService {
     /**
      * Get SMS cost
      *
-     * @param phones          - list of phones through comma or semicolon
-     * @param message         - the message to be send
-     * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param format          - message format (0 - обычное sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query           - additional request parameters ("list=79999999999:Ваш пароль: 123\n78888888888:Ваш пароль: 456")
-     * @return array (<cost>, <amount of sms>) in case of successful sending
-     * array (0, <error code>) in case of error
+     * @param phones          List of phones through comma or semicolon
+     * @param message         The message to be send
+     * @param transliteration Converting into transliteration (0, 1 or 2)
+     * @param format          MessageFormat
+     * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query           Additional request parameters
+     * @return The resultant String array
+     * <p>
+     * (<cost>, <amount of sms>) in case of successful sending
+     * <p>
+     * (0, <error code>) in case of error
      */
     public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query) {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        m = send("send", "cost=1&phones=" + encode(phones)
+        m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
             + (sender == "" ? "" : "&sender=" + encode(sender))
@@ -127,26 +130,28 @@ public class SMSCService {
         return m;
     }
 
-
     /**
-     * Checking the status of a sent SMS or HLR request
+     * Get the status of a sent SMS or HLR request
      *
-     * @param id    - message id
-     * @param phone - phone number
-     * @param all   - additionally, the elements at the end of the array are returned:
+     * @param id    Message ID
+     * @param phone Phone number
+     * @param all   Additionally, the elements at the end of the array are returned:
      *              (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
-     * @return array
+     * @return The resultant String array
+     * <p>
      * (<status>, <change time>, <sms error code>) for sent SMS
+     * <p>
      * (<status>, <change time>, <sms error code>, <country code of registration>, <subscriber operator code>,
      * <country name of registration>, <subscriber operator name>, <roaming country name>, <roaming operator name>,
      * <SIM card IMSI code>, <service center number>) for HLR request
-     * or array(0, <error code>) in case of error
+     * <p>
+     * (0, <error code>) in case of error
      */
     public String[] getStatus(int id, String phone, int all) {
         String[] m = {};
         String tmp;
 
-        m = send("status", "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
+        m = send(ApiMethod.STATUS.getMethod(), "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -168,9 +173,9 @@ public class SMSCService {
     }
 
     /**
-     * Getting balance
+     * Getting account balance
      *
-     * @return String balance or empty line in case of error
+     * @return The resultant String balance or empty line in case of error
      */
     public Balance getBalance() {
         String[] responce = send("balance", "cur=true");
@@ -184,92 +189,92 @@ public class SMSCService {
     /**
      * Building and sending a request
      *
-     * @param cmd
-     *        Required command
-     * @param args
-     *        Additional arguments
-     *
+     * @param apiMethod  Required command
+     * @param args Additional arguments
      * @return The resultant String array
-     *
-     * @exception CharsetEncodingException may produce encode(String) method
+     * @throws CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
      */
-    private String[] send(String cmd, String args) {
-        // TODO: check https
+    private String[] send(String apiMethod, String args) {
+        // TODO: check case with https
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
-        final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
+        final String url = protocol + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(smscLogin)
             + "&psw=" + encode(smscPassword)
             + "&fmt=1&charset=" + smscCharset + "&" + args;
 
         return send(url, 0).split(",");
     }
 
+    /**
+     * Select URL to another server (ex. www2.smsc.ua) and then calling SMSCService#send(java.lang.String)
+     *
+     * @param url          API URL
+     * @param retriesCount Count of retries
+     * @return The resultant String
+     */
     private String send(String url, int retriesCount) {
         if (retriesCount == MAX_RETRIES_COUNT) {
+            LOGGER.error("Cannot connect to any server. RetriesCount: {}. Url: {}", retriesCount, url);
             return EMPTY_RESPONSE;
         }
 
         final String urlToSend = retriesCount > 0
-            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/") // select URL to another server, ex. www2.smsc.ua
+            ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
             : url;
 
-        final String response = smscReadUrl(urlToSend);
+        final String response = send(urlToSend);
         if (EMPTY.equals(response)) {
+            LOGGER.info("Cannot connect to the next server: {}. Retrying...", urlToSend);
             return send(url, retriesCount + 1);
         }
         return response;
     }
 
     /**
-     * URL Reading
+     * Send Http Request
      *
-     * @param url
-     *        Message ID
-     *
+     * @param url API URL
      * @return The resultant String
      */
-    private String smscReadUrl(String url) {
-        String line = "", real_url = url;
-        String[] param = {};
-        boolean is_post = (SMSC_POST || url.length() > 2000);
-
-        if (is_post) {
-            param = url.split("\\?", 2);
-            real_url = param[0];
-        }
-
+    private String send(String url) {
+        final HttpRequest request = getHttpRequestBuilder(url)
+            .header("Content-Type", CONTENT_TYPE_VALUE)
+            .build();
         try {
-            URL u = new URL(real_url);
-            InputStream is;
-
-            if (is_post) {
-                URLConnection conn = u.openConnection();
-                conn.setDoOutput(true);
-                OutputStreamWriter os = new OutputStreamWriter(conn.getOutputStream(), smscCharset);
-                os.write(param[1]);
-                os.flush();
-                os.close();
-                System.out.println("post");
-                is = conn.getInputStream();
-            } else {
-                is = u.openStream();
-            }
-
-            InputStreamReader reader = new InputStreamReader(is, smscCharset);
-
-            int ch;
-            while ((ch = reader.read()) != -1) {
-                line += (char) ch;
-            }
-
-            reader.close();
-        } catch (MalformedURLException e) {
-
-        } catch (IOException e) {
-
+            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        } catch (IOException exception) {
+            LOGGER.error("Cannot send message to URL: {}", url);
+            throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
+        } catch (InterruptedException exception) {
+            LOGGER.error("Interrupted message sending to URL: {}", url);
+            Thread.currentThread().interrupt();
+            throw new InterruptSendingException("Message sending has been interrupted", exception);
         }
+    }
 
-        return line;
+    /**
+     * Select POST or GET method by checking SMSC_POST or length of URL
+     *
+     * @param url API URL
+     * @return The resultant HttpRequest.Builder
+     */
+    private HttpRequest.Builder getHttpRequestBuilder(String url) {
+        final HttpRequest.Builder httpRequestBuilder = HttpRequest.newBuilder();
+        if (SMSC_POST || url.length() > URL_MAX_LENGTH) {
+            // TODO: find use case for this way
+            final String[] splittedUrl = url.split(SPLIT_URL_REGEX, NUMBER_OF_PATTERN_APPLYING);
+            final String context = splittedUrl[0];
+            final String requestParameters = splittedUrl[1];
+            httpRequestBuilder
+                .uri(URI.create(context))
+                .POST(HttpRequest.BodyPublishers.ofString(requestParameters));
+        } else {
+            httpRequestBuilder
+                .uri(URI.create(url))
+                .GET();
+        }
+        return httpRequestBuilder;
     }
 
     private String implode(String[] ary, String delim) {
@@ -284,27 +289,12 @@ public class SMSCService {
         return out;
     }
 
-    private String send(String url) {
-        final HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("Content-Type", CONTENT_TYPE_VALUE)
-            .build();
-        try {
-            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.body();
-        } catch (IOException exception) {
-            throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new InterruptSendingException("Message sending has been interrupted", exception);
-        }
-    }
-
     private String encode(String str) {
         try {
             return URLEncoder.encode(str, smscCharset);
         } catch (UnsupportedEncodingException exception) {
-            throw new CharsetEncodingException("Unsupportable SMSC Charset", exception);
+            LOGGER.error("Cannot encode the next string {}. Unsupportable charset: {}", str, smscCharset);
+            throw new CharsetEncodingException("Unsupportable charset: " + smscCharset, exception);
         }
     }
 
