@@ -130,7 +130,6 @@ public class SMSCService {
         return m;
     }
 
-
     /**
      * Get the status of a sent SMS or HLR request
      *
@@ -223,6 +222,7 @@ public class SMSCService {
      */
     private String send(String url, int retriesCount) {
         if (retriesCount == MAX_RETRIES_COUNT) {
+            LOGGER.error("Cannot connect to any server. RetriesCount: {}. Url: {}", retriesCount, url);
             return EMPTY_RESPONSE;
         }
 
@@ -232,6 +232,7 @@ public class SMSCService {
 
         final String response = send(urlToSend);
         if (EMPTY.equals(response)) {
+            LOGGER.info("Cannot connect to the next server: {}. Retrying...", urlToSend);
             return send(url, retriesCount + 1);
         }
         return response;
@@ -251,8 +252,10 @@ public class SMSCService {
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             return response.body();
         } catch (IOException exception) {
+            LOGGER.error("Cannot send message to URL: {}", url);
             throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
         } catch (InterruptedException exception) {
+            LOGGER.error("Interrupted message sending to URL: {}", url);
             Thread.currentThread().interrupt();
             throw new InterruptSendingException("Message sending has been interrupted", exception);
         }
@@ -298,6 +301,7 @@ public class SMSCService {
         try {
             return URLEncoder.encode(str, smscCharset);
         } catch (UnsupportedEncodingException exception) {
+            LOGGER.error("Cannot encode the next string {}. Unsupportable charset: {}", str, smscCharset);
             throw new CharsetEncodingException("Unsupportable charset: " + smscCharset, exception);
         }
     }
