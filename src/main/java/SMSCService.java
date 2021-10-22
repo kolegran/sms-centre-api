@@ -49,16 +49,28 @@ public class SMSCService {
     /**
      * SMS Sending
      *
-     * @param phones          - list of phones through comma or semicolon
-     * @param message         - the message to be send
-     * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param time            - required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
-     * @param id              - message id
-     * @param format          - message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query           - additional request parameters ("valid=01:00&maxsms=3&tz=2")
-     * @return array (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
-     * array (<id>, <error code>) in case of error
+     * @param phones
+     *        List of phones through comma or semicolon
+     * @param message
+     *        The message to be send
+     * @param transliteration
+     *        Converting into transliteration (0, 1 or 2)
+     * @param time
+     *        Required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
+     * @param id
+     *        Message ID
+     * @param format
+     *        Message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param sender
+     *        Sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query
+     *        Additional request parameters
+     *
+     * @return The resultant String array
+     *
+     *         (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
+     *
+     *         (<id>, <error code>) in case of error
      */
     public String[] sendSms(String phones, String message, int transliteration, String time, String id, int format, String sender, String query) {
         final String[] formats = {"", "sms=1", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
@@ -89,14 +101,24 @@ public class SMSCService {
     /**
      * Get SMS cost
      *
-     * @param phones          - list of phones through comma or semicolon
-     * @param message         - the message to be send
-     * @param transliteration - converting into transliteration (0, 1 or 2)
-     * @param format          - message format (0 - обычное sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
-     * @param sender          - sender name. To disable Sender ID pass an empty string or dot as the name
-     * @param query           - additional request parameters ("list=79999999999:Ваш пароль: 123\n78888888888:Ваш пароль: 456")
-     * @return array (<cost>, <amount of sms>) in case of successful sending
-     * array (0, <error code>) in case of error
+     * @param phones
+     *        List of phones through comma or semicolon
+     * @param message
+     *        The message to be send
+     * @param transliteration
+     *        Converting into transliteration (0, 1 or 2)
+     * @param format
+     *        Message format (0 - common/classic sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param sender
+     *        Sender name. To disable Sender ID pass an empty string or dot as the name
+     * @param query
+     *        Additional request parameters
+     *
+     * @return The resultant String array
+     *
+     *         (<cost>, <amount of sms>) in case of successful sending
+     *
+     *         (0, <error code>) in case of error
      */
     public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query) {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
@@ -122,18 +144,25 @@ public class SMSCService {
 
 
     /**
-     * Checking the status of a sent SMS or HLR request
+     * Get the status of a sent SMS or HLR request
      *
-     * @param id    - message id
-     * @param phone - phone number
-     * @param all   - additionally, the elements at the end of the array are returned:
-     *              (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
-     * @return array
-     * (<status>, <change time>, <sms error code>) for sent SMS
-     * (<status>, <change time>, <sms error code>, <country code of registration>, <subscriber operator code>,
-     * <country name of registration>, <subscriber operator name>, <roaming country name>, <roaming operator name>,
-     * <SIM card IMSI code>, <service center number>) for HLR request
-     * or array(0, <error code>) in case of error
+     * @param id
+     *        Message id
+     * @param phone
+     *        Phone number
+     * @param all
+     *        Additionally, the elements at the end of the array are returned:
+     *        (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
+     *
+     * @return The resultant String array
+     *
+     *         (<status>, <change time>, <sms error code>) for sent SMS
+     *
+     *         (<status>, <change time>, <sms error code>, <country code of registration>, <subscriber operator code>,
+     *         <country name of registration>, <subscriber operator name>, <roaming country name>, <roaming operator name>,
+     *         <SIM card IMSI code>, <service center number>) for HLR request
+     *
+     *         (0, <error code>) in case of error
      */
     public String[] getStatus(int id, String phone, int all) {
         String[] m = {};
@@ -161,9 +190,9 @@ public class SMSCService {
     }
 
     /**
-     * Getting balance
+     * Getting account balance
      *
-     * @return String balance or empty line in case of error
+     * @return The resultant String balance or empty line in case of error
      */
     public String getBalance() {
         String[] m = send("balance", "");
@@ -209,7 +238,7 @@ public class SMSCService {
      * Select URL to another server (ex. www2.smsc.ua) and then calling SMSCService#send(java.lang.String)
      *
      * @param url
-     *        Message ID
+     *        API URL
      * @param retriesCount
      *        Count of retries
      *
@@ -235,7 +264,7 @@ public class SMSCService {
      * Send Http Request
      *
      * @param url
-     *        Message ID
+     *        API URL
      *
      * @return The resultant String
      */
@@ -258,7 +287,7 @@ public class SMSCService {
      * Select POST or GET method by checking SMSC_POST or length of URL
      *
      * @param url
-     *        Message ID
+     *        API URL
      *
      * @return The resultant HttpRequest.Builder
      */
