@@ -1,3 +1,6 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -8,6 +11,7 @@ import java.net.http.HttpResponse;
 
 public class SMSCService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SMSCService.class);
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final int NUMBER_OF_PATTERN_APPLYING = 2;
     private static final String SPLIT_URL_REGEX = "\\?";
