@@ -172,21 +172,13 @@ public class SMSCService {
      *
      * @return String balance or empty line in case of error
      */
-    public String getBalance() {
-        String[] m = send("balance", "");
-
-        if (m.length >= 1) {
-            if (smscDebug) {
-                if (m.length == 1) {
-                    System.out.println("Balance : " + m[0]);
-                } else {
-                    System.out.println("Error: " + Math.abs(Integer.parseInt(m[1])));
-                }
-            } else {
-                System.out.println("Server is not responding!");
-            }
+    public Balance getBalance() {
+        String[] responce = send("balance", "cur=true");
+        if (responce.length == 0) {
+            LOGGER.error("Empty balance responce");
+            return new Balance();
         }
-        return m.length == 2 ? "" : m[0];
+        return new Balance(responce);
     }
 
     /**
