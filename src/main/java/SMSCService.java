@@ -54,7 +54,7 @@ public class SMSCService {
      * @param transliteration Converting into transliteration (0, 1 or 2)
      * @param time            Required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
      * @param id              Message ID
-     * @param format          Message format (0 - common(classic) sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param messageFormat   MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
      * @return The resultant String array
@@ -63,16 +63,16 @@ public class SMSCService {
      * <p>
      * (<id>, <error code>) in case of error
      */
-    public String[] sendSms(String phones, String message, int transliteration, String time, String id, int format, String sender, String query) {
-        final String[] formats = {"", "sms=1", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
-        String[] m = {};
+    public String[] send(String phones, String message, int transliteration, String time, String id, MessageFormat messageFormat, String sender, String query) {
+        final String format = messageFormat.getFormat();
+        final String formatToSend = format.isEmpty() ? EMPTY : "&" + format;
 
-        m = send("send", "cost=1&phones=" + encode(phones)
+        final String[] m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
-            + "&translit=" + transliteration + "&id=" + id + (format > 0 ? "&" + formats[format] : "")
-            + (sender == "" ? "" : "&sender=" + encode(sender))
-            + (time == "" ? "" : "&time=" + encode(time))
-            + (query == "" ? "" : "&" + query));
+            + "&translit=" + transliteration + "&id=" + id + formatToSend
+            + (EMPTY.equals(sender) ? EMPTY : "&sender=" + encode(sender))
+            + (EMPTY.equals(time) ? EMPTY : "&time=" + encode(time))
+            + (EMPTY.equals(query) ? EMPTY : "&" + query));
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -95,7 +95,7 @@ public class SMSCService {
      * @param phones          List of phones through comma or semicolon
      * @param message         The message to be send
      * @param transliteration Converting into transliteration (0, 1 or 2)
-     * @param format          Message format (0 - common/classic sms, 1 - flash-sms, 2 - wap-push, 3 - hlr, 4 - bin, 5 - bin-hex, 6 - ping-sms, 7 - mms, 8 - mail, 9 - call, 10 - viber, 11 - soc)
+     * @param format          MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
      * @return The resultant String array
@@ -108,7 +108,7 @@ public class SMSCService {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        m = send("send", "cost=1&phones=" + encode(phones)
+        m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
             + (sender == "" ? "" : "&sender=" + encode(sender))
@@ -130,7 +130,7 @@ public class SMSCService {
     /**
      * Get the status of a sent SMS or HLR request
      *
-     * @param id    Message id
+     * @param id    Message ID
      * @param phone Phone number
      * @param all   Additionally, the elements at the end of the array are returned:
      *              (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
@@ -148,7 +148,7 @@ public class SMSCService {
         String[] m = {};
         String tmp;
 
-        m = send("status", "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
+        m = send(ApiMethod.STATUS.getMethod(), "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -175,7 +175,7 @@ public class SMSCService {
      * @return The resultant String balance or empty line in case of error
      */
     public String getBalance() {
-        String[] m = send("balance", "");
+        String[] m = send(ApiMethod.BALANCE.getMethod(), "");
 
         if (m.length >= 1) {
             if (smscDebug) {
@@ -194,16 +194,16 @@ public class SMSCService {
     /**
      * Building and sending a request
      *
-     * @param cmd  Required command
+     * @param apiMethod  Required command
      * @param args Additional arguments
      * @return The resultant String array
      * @throws CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
      */
-    private String[] send(String cmd, String args) {
+    private String[] send(String apiMethod, String args) {
         // TODO: check case with https
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
-        final String url = protocol + "://smsc.ua/sys/" + cmd + ".php?login=" + encode(smscLogin)
+        final String url = protocol + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(smscLogin)
             + "&psw=" + encode(smscPassword)
             + "&fmt=1&charset=" + smscCharset + "&" + args;
 
