@@ -1,16 +1,11 @@
 public class Balance {
 
-    private final double value;
+    private final Double value;
     private final String currency;
 
-    Balance(){
-        this.value = 0.0;
-        this.currency = "Conditional Unit";
-    }
-
-    Balance(String[] balance) {
-        this.value = Double.parseDouble(balance[0]);
-        this.currency = balance[1];
+    Balance(String value, String currency) {
+        this.value = Double.parseDouble(value);
+        this.currency = currency;
     }
 
     public double getValue() {

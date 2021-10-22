@@ -176,9 +176,9 @@ public class SMSCService {
         String[] responce = send("balance", "cur=true");
         if (responce.length == 0) {
             LOGGER.error("Empty balance responce");
-            return new Balance();
+            return new Balance("0", "Units");
         }
-        return new Balance(responce);
+        return new Balance(responce[0], responce[1]);
     }
 
     /**
