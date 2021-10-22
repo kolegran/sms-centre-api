@@ -294,7 +294,7 @@ public class SMSCService {
         try {
             return URLEncoder.encode(str, smscCharset);
         } catch (UnsupportedEncodingException exception) {
-            throw new CharsetEncodingException("Unsupportable SMSC Charset", exception);
+            throw new CharsetEncodingException("Unsupportable charset: " + smscCharset, exception);
         }
     }
 
