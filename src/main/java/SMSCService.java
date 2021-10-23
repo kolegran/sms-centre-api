@@ -1,3 +1,5 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,10 +14,10 @@ import java.net.http.HttpResponse;
 public class SMSCService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SMSCService.class);
+    private static final String API_DOCS_URL = "https://smsc.ua/api/http/#menu";
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final int NUMBER_OF_PATTERN_APPLYING = 2;
     private static final String SPLIT_URL_REGEX = "\\?";
-    private static final String EMPTY_RESPONSE = "";
     private static final boolean SMSC_HTTPS = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
@@ -23,6 +25,7 @@ public class SMSCService {
     private static final String EMPTY = "";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private String smscLogin = "login";
     private String smscPassword = "password";
@@ -61,36 +64,22 @@ public class SMSCService {
      * @param messageFormat   MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
-     * @return The resultant String array
+     * @return The resultant MailingCost object
      * <p>
-     * (<id>, <amount of sms>, <cost>, <account balance>) in case of successful sending
+     * (<id>, <amount of sms>, <cost>, <balance>) in case of successful sending
      * <p>
      * (<id>, <error code>) in case of error
      */
-    public String[] send(String phones, String message, int transliteration, String time, String id, MessageFormat messageFormat, String sender, String query) {
+    public MailingCost send(String phones, String message, int transliteration, String time, String id, MessageFormat messageFormat, String sender, String query) {
         final String format = messageFormat.getFormat();
         final String formatToSend = format.isEmpty() ? EMPTY : "&" + format;
 
-        final String[] m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
+        return send(ApiMethod.SEND.getMethod(), MailingCost.class, "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + "&id=" + id + formatToSend
-            + (EMPTY.equals(sender) ? EMPTY : "&sender=" + encode(sender))
-            + (EMPTY.equals(time) ? EMPTY : "&time=" + encode(time))
-            + (EMPTY.equals(query) ? EMPTY : "&" + query));
-
-        if (m.length > 1) {
-            if (smscDebug) {
-                if (Integer.parseInt(m[1]) > 0) {
-                    System.out.println("SMS send successful. ID: " + m[0] + ", amount of SMS: " + m[1] + ", cost: " + m[2] + ", balance: " + m[3]);
-                } else {
-                    System.out.print("Ошибка №" + Math.abs(Integer.parseInt(m[1])));
-                    System.out.println(Integer.parseInt(m[0]) > 0 ? (", ID: " + m[0]) : "");
-                }
-            }
-        } else {
-            System.out.println("Server is not responding");
-        }
-        return m;
+            + (sender.isEmpty() ? EMPTY : "&sender=" + encode(sender))
+            + (time.isEmpty() ? EMPTY : "&time=" + encode(time))
+            + (query.isEmpty() ? EMPTY : "&" + encode(query)));
     }
 
     /**
@@ -112,7 +101,7 @@ public class SMSCService {
         String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
         String[] m = {};
 
-        m = send(ApiMethod.SEND.getMethod(), "cost=1&phones=" + encode(phones)
+        m = send(ApiMethod.SEND.getMethod(), null,"cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
             + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
             + (sender == "" ? "" : "&sender=" + encode(sender))
@@ -151,7 +140,7 @@ public class SMSCService {
         String[] m = {};
         String tmp;
 
-        m = send(ApiMethod.STATUS.getMethod(), "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
+        m = send(ApiMethod.STATUS.getMethod(), null, "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
 
         if (m.length > 1) {
             if (smscDebug) {
@@ -191,18 +180,18 @@ public class SMSCService {
      *
      * @param apiMethod  Required command
      * @param args Additional arguments
-     * @return The resultant String array
+     * @return The resultant Generic
      * @throws CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
      */
-    private String[] send(String apiMethod, String args) {
+    private <T> T send(String apiMethod, Class<T> classType, String args) {
         // TODO: check case with https
         final String protocol = SMSC_HTTPS ? "https" : "http";
 
         final String url = protocol + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(smscLogin)
             + "&psw=" + encode(smscPassword)
-            + "&fmt=1&charset=" + smscCharset + "&" + args;
+            + "&fmt=3&charset=" + smscCharset + "&" + args;
 
-        return send(url, 0).split(",");
+        return send(url, classType, 0);
     }
 
     /**
@@ -210,22 +199,22 @@ public class SMSCService {
      *
      * @param url          API URL
      * @param retriesCount Count of retries
-     * @return The resultant String
+     * @return The resultant Generic
      */
-    private String send(String url, int retriesCount) {
+    private <T> T send(String url, Class<T> classType, int retriesCount) {
         if (retriesCount == MAX_RETRIES_COUNT) {
             LOGGER.error("Cannot connect to any server. RetriesCount: {}. Url: {}", retriesCount, url);
-            return EMPTY_RESPONSE;
+            throw new NoConnectionException("Server is not responding. Try again later");
         }
 
         final String urlToSend = retriesCount > 0
             ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
             : url;
 
-        final String response = send(urlToSend);
-        if (EMPTY.equals(response)) {
+        final T response = send(urlToSend, classType);
+        if (EMPTY.equals(response)) { // TODO: reproduce & fix condition to server reconnecting
             LOGGER.info("Cannot connect to the next server: {}. Retrying...", urlToSend);
-            return send(url, retriesCount + 1);
+            return send(url, classType, retriesCount + 1);
         }
         return response;
     }
@@ -234,15 +223,23 @@ public class SMSCService {
      * Send Http Request
      *
      * @param url API URL
-     * @return The resultant String
+     * @return The resultant Generic
      */
-    private String send(String url) {
-        final HttpRequest request = getHttpRequestBuilder(url)
-            .header("Content-Type", CONTENT_TYPE_VALUE)
-            .build();
+    private <T> T send(String url, Class<T> classType) {
         try {
-            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.body();
+            final HttpResponse<String> response = httpClient.send(getHttpRequest(url), HttpResponse.BodyHandlers.ofString());
+            final MessagingError messagingError = parseError(response.body());
+            if (messagingError.isError()) {
+                LOGGER.error("During message sending for URL: {} \n the next error occurred: {}.\n The error code is {}. For details see API docs reference: {}",
+                    url,
+                    messagingError.getError(),
+                    messagingError.getErrorCode(),
+                    API_DOCS_URL
+                );
+                throw new CannotSendMessageException(messagingError.getError());
+            }
+
+            return objectMapper.readValue(response.body(), classType);
         } catch (IOException exception) {
             LOGGER.error("Cannot send message to URL: {}", url);
             throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
@@ -254,14 +251,14 @@ public class SMSCService {
     }
 
     /**
-     * Select POST or GET method by checking SMSC_POST or length of URL
+     * Create HttpRequest. Select POST or GET method by checking SMSC_POST or length of URL
      *
      * @param url API URL
-     * @return The resultant HttpRequest.Builder
+     * @return The resultant HttpRequest
      */
-    private HttpRequest.Builder getHttpRequestBuilder(String url) {
+    private HttpRequest getHttpRequest(String url) {
         final HttpRequest.Builder httpRequestBuilder = HttpRequest.newBuilder();
-        if (SMSC_POST || url.length() > URL_MAX_LENGTH) {
+        if (isPost(url.length())) {
             // TODO: find use case for this way
             final String[] splittedUrl = url.split(SPLIT_URL_REGEX, NUMBER_OF_PATTERN_APPLYING);
             final String context = splittedUrl[0];
@@ -274,7 +271,17 @@ public class SMSCService {
                 .uri(URI.create(url))
                 .GET();
         }
-        return httpRequestBuilder;
+        return httpRequestBuilder
+            .header("Content-Type", CONTENT_TYPE_VALUE)
+            .build();
+    }
+
+    private boolean isPost(int urlLength) {
+        return SMSC_POST || urlLength > URL_MAX_LENGTH;
+    }
+
+    private MessagingError parseError(String responseBody) throws JsonProcessingException {
+        return objectMapper.readValue(responseBody, MessagingError.class);
     }
 
     private String implode(String[] ary, String delim) {
@@ -300,22 +307,33 @@ public class SMSCService {
 
     private static final class CharsetEncodingException extends RuntimeException {
 
-        public CharsetEncodingException(String message, Exception exception) {
+        private CharsetEncodingException(String message, Exception exception) {
             super(message, exception);
         }
     }
 
     private static final class CannotSendMessageException extends RuntimeException {
 
-        public CannotSendMessageException(String message, Exception exception) {
+        private CannotSendMessageException(String message) {
+            super(message);
+        }
+
+        private CannotSendMessageException(String message, Exception exception) {
             super(message, exception);
         }
     }
 
     private static final class InterruptSendingException extends RuntimeException {
 
-        public InterruptSendingException(String message, Exception exception) {
+        private InterruptSendingException(String message, Exception exception) {
             super(message, exception);
+        }
+    }
+
+    private static final class NoConnectionException extends RuntimeException {
+
+        private NoConnectionException(String message) {
+            super(message);
         }
     }
 }
