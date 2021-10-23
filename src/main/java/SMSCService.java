@@ -1,6 +1,12 @@
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import exception.APIServerException;
+import exception.CannotParseMessageException;
+import exception.CannotSendMessageException;
+import exception.CharsetEncodingException;
+import exception.InterruptSendingException;
+import exception.NoConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -301,45 +307,15 @@ public class SMSCService {
         }
     }
 
-    private static final class CharsetEncodingException extends RuntimeException {
 
-        private CharsetEncodingException(String message, Exception exception) {
-            super(message, exception);
-        }
-    }
 
-    private static final class APIServerException extends RuntimeException {
 
-        private APIServerException(String message) {
-            super(message);
-        }
-    }
 
-    private static final class InterruptSendingException extends RuntimeException {
 
-        private InterruptSendingException(String message, Exception exception) {
-            super(message, exception);
-        }
-    }
 
-    private static final class NoConnectionException extends RuntimeException {
 
-        private NoConnectionException(String message) {
-            super(message);
-        }
-    }
 
-    private static final class CannotSendMessageException extends RuntimeException {
 
-        private CannotSendMessageException(String message, Exception exception) {
-            super(message, exception);
-        }
-    }
 
-    private static final class CannotParseMessageException extends RuntimeException {
 
-        private CannotParseMessageException(String message, Exception exception) {
-            super(message, exception);
-        }
-    }
 }
