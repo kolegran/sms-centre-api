@@ -306,16 +306,4 @@ public class SMSCService {
             throw new CharsetEncodingException("Unsupportable charset: " + smscCharset, exception);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 }
