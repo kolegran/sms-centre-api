@@ -1,3 +1,4 @@
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -204,12 +205,12 @@ public class SMSCService {
             ? url.replace("://smsc.ua/", "://www" + retriesCount + ".smsc.ua/")
             : url;
 
-        final T response = send(urlToSend, classType);
-        if (EMPTY.equals(response)) { // TODO: reproduce & fix condition to server reconnecting
+        try {
+            return send(urlToSend, classType);
+        } catch (CannotSendMessageException | InterruptSendingException e) {
             LOGGER.info("Cannot connect to the next server: {}. Retrying...", urlToSend);
             return send(url, classType, retriesCount + 1);
         }
-        return response;
     }
 
     /**
@@ -229,10 +230,12 @@ public class SMSCService {
                     messagingError.getErrorCode(),
                     API_DOCS_URL
                 );
-                throw new CannotSendMessageException(messagingError.getError());
+                throw new APIServerException(messagingError.getError());
             }
-
             return objectMapper.readValue(response.body(), classType);
+        } catch (JacksonException exception) {
+            LOGGER.error("Cannot parse response body");
+            throw new CannotParseMessageException("Exception occurred during response parsing", exception);
         } catch (IOException exception) {
             LOGGER.error("Cannot send message to URL: {}", url);
             throw new CannotSendMessageException("Exception occurred during message sending for url: " + url, exception);
@@ -305,14 +308,10 @@ public class SMSCService {
         }
     }
 
-    private static final class CannotSendMessageException extends RuntimeException {
+    private static final class APIServerException extends RuntimeException {
 
-        private CannotSendMessageException(String message) {
+        private APIServerException(String message) {
             super(message);
-        }
-
-        private CannotSendMessageException(String message, Exception exception) {
-            super(message, exception);
         }
     }
 
@@ -327,6 +326,20 @@ public class SMSCService {
 
         private NoConnectionException(String message) {
             super(message);
+        }
+    }
+
+    private static final class CannotSendMessageException extends RuntimeException {
+
+        private CannotSendMessageException(String message, Exception exception) {
+            super(message, exception);
+        }
+    }
+
+    private static final class CannotParseMessageException extends RuntimeException {
+
+        private CannotParseMessageException(String message, Exception exception) {
+            super(message, exception);
         }
     }
 }
