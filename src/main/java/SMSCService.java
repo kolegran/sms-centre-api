@@ -167,12 +167,12 @@ public class SMSCService {
      * @return The resultant String balance or empty line in case of error
      */
     public Balance getBalance() {
-        String[] responce = send("balance", "cur=true");
-        if (responce.length == 0) {
-            LOGGER.error("Empty balance responce");
-            return new Balance("0", "Units");
+        Balance response = send(ApiMethod.BALANCE.getMethod(), Balance.class, "cur=true");
+        if (response == null) {
+            LOGGER.error("Empty balance response");
+            return new Balance();
         }
-        return new Balance(responce[0], responce[1]);
+        return response;
     }
 
     /**
