@@ -3,28 +3,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Status {
 
     @JsonProperty("status")
-    private int status;
+    private Integer status;
 
     @JsonProperty("last_date")
-    //TODO: find the class for displaying timestamps
+    private String lastDate;
 
     @JsonProperty("last_timestamp")
+    private String lastTimestamp;
 
     @JsonProperty("err")
-    private int errorCode;
+    private Integer errorCode;
 
     @JsonProperty("send_date")
+    private String sendDate;
 
     @JsonProperty("send_timestamp")
+    private String sendTimestamp;
 
     @JsonProperty("phone")
     private String phone;
 
     @JsonProperty("cost")
-    private int cost;
+    private Integer cost;
 
     @JsonProperty("sender_id")
-    private int senderID;
+    private Integer senderId;
 
     @JsonProperty("status_name")
     private String statusName;
@@ -36,10 +39,28 @@ public class Status {
     private String comment;
 
     @JsonProperty("type")
-    private int type;
+    private Integer type;
 
     @JsonProperty("sms_cnt")
-    private int sms_count;
+    private Integer smsCount;
 
-    //TODO: write the methods and overrides
+    @Override
+    public String toString() {
+        return "Status{" +
+                "status=" + status +
+                ", lastDate='" + lastDate + '\'' +
+                ", lastTimestamp='" + lastTimestamp + '\'' +
+                ", errorCode=" + errorCode +
+                ", sendDate='" + sendDate + '\'' +
+                ", sendTimestamp='" + sendTimestamp + '\'' +
+                ", phone='" + phone + '\'' +
+                ", cost=" + cost +
+                ", senderID=" + senderID +
+                ", statusName='" + statusName + '\'' +
+                ", message='" + message + '\'' +
+                ", comment='" + comment + '\'' +
+                ", type=" + type +
+                ", sms_count=" + sms_count +
+                '}';
+    }
 }
