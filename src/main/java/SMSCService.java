@@ -17,15 +17,17 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 
 public class SMSCService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SMSCService.class);
     private static final String API_DOCS_URL = "https://smsc.ua/api/http/#menu";
+    private static final String DEFAULT_CHARSET = StandardCharsets.UTF_8.name();
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final int NUMBER_OF_PATTERN_APPLYING = 2;
     private static final String SPLIT_URL_REGEX = "\\?";
-    private static final boolean SMSC_HTTPS = false;
+    private static final boolean DEFAULT_DEBUG = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
     private static final int URL_MAX_LENGTH = 2000;
@@ -34,30 +36,18 @@ public class SMSCService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private String smscLogin = "login";
-    private String smscPassword = "password";
-    private String smscCharset = "utf-8";
-    private boolean smscDebug = false;
+    private final String login;
+    private final String password;
+    private final String charset;
+    private final Boolean debug;
+    private final Protocol protocol;
 
-    public SMSCService() {
-    }
-
-    public SMSCService(String login, String password) {
-        this.smscLogin = login;
-        this.smscPassword = password;
-    }
-
-    public SMSCService(String login, String password, String charset) {
-        this.smscLogin = login;
-        this.smscPassword = password;
-        this.smscCharset = charset;
-    }
-
-    public SMSCService(String login, String password, String charset, boolean debug) {
-        this.smscLogin = login;
-        this.smscPassword = password;
-        this.smscCharset = charset;
-        this.smscDebug = debug;
+    private SMSCService(String login, String password, Protocol protocol, String charset, Boolean debug) {
+        this.login = login;
+        this.password = password;
+        this.protocol = protocol;
+        this.charset = charset;
+        this.debug = debug;
     }
 
     /**
@@ -115,7 +105,7 @@ public class SMSCService {
             + (query == "" ? "" : "&" + query));
 
         if (m.length > 1) {
-            if (smscDebug) {
+            if (debug) {
                 if (Integer.parseInt(m[1]) > 0)
                     System.out.println("Cost of mailing: " + m[0] + ", Amount of SMS: " + m[1]);
             } else
@@ -150,7 +140,7 @@ public class SMSCService {
         m = send(ApiMethod.STATUS.getMethod(), null, "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
 
         if (m.length > 1) {
-            if (smscDebug) {
+            if (debug) {
                 if (m[1] != "" && Integer.parseInt(m[1]) >= 0) {
                     java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(Integer.parseInt(m[1]));
                     System.out.println("SMS status: " + m[0]);
@@ -176,6 +166,15 @@ public class SMSCService {
     public Balance getBalance() { return send(ApiMethod.BALANCE.getMethod(), Balance.class, "cur=true"); }
 
     /**
+     * Create Builder for SMSCService
+     *
+     * @return The resultant Builder
+     */
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    /**
      * Building and sending a request
      *
      * @param apiMethod  Required command
@@ -184,12 +183,9 @@ public class SMSCService {
      * @throws CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
      */
     private <T> T send(String apiMethod, Class<T> classType, String args) {
-        // TODO: check case with https
-        final String protocol = SMSC_HTTPS ? "https" : "http";
-
-        final String url = protocol + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(smscLogin)
-            + "&psw=" + encode(smscPassword)
-            + "&fmt=3&charset=" + smscCharset + "&" + args;
+        final String url = protocol.getName() + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(login)
+            + "&psw=" + encode(password)
+            + "&fmt=3&charset=" + charset + "&" + args;
 
         return send(url, classType, 0);
     }
@@ -300,10 +296,52 @@ public class SMSCService {
 
     private String encode(String str) {
         try {
-            return URLEncoder.encode(str, smscCharset);
+            return URLEncoder.encode(str, charset);
         } catch (UnsupportedEncodingException exception) {
-            LOGGER.error("Cannot encode the next string {}. Unsupportable charset: {}", str, smscCharset);
-            throw new CharsetEncodingException("Unsupportable charset: " + smscCharset, exception);
+            LOGGER.error("Cannot encode the next string {}. Unsupportable charset: {}", str, charset);
+            throw new CharsetEncodingException("Unsupportable charset: " + charset, exception);
+        }
+    }
+
+    public static class Builder {
+
+        private String password;
+        private String login;
+        private String charset;
+        private Protocol protocol;
+        private Boolean debug;
+
+        public Builder login(String login) {
+            this.login = login;
+            return this;
+        }
+
+        public Builder password(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public Builder protocol(Protocol protocol) {
+            this.protocol = protocol;
+            return this;
+        }
+
+        public Builder charset(String charset) {
+            this.charset = charset;
+            return this;
+        }
+
+        public Builder debug(Boolean debug) {
+            this.debug = debug;
+            return this;
+        }
+
+        public SMSCService build() {
+            return new SMSCService(this.login, this.password, this.protocol, this.charset, this.debug);
+        }
+
+        public SMSCService build(String login, String password) {
+            return new SMSCService(login, password, Protocol.HTTP, DEFAULT_CHARSET, DEFAULT_DEBUG);
         }
     }
 }
