@@ -27,7 +27,7 @@ public class SmsApplication {
         );
         System.out.println(mailingCost);
 
-        final Status status = smscService.getStatus(1, "+380633660341", 3, 2);
+        final Status status = smscService.getStatus(1, "+380633660341", 1);
         System.out.println(status.toString());
     }
 }
