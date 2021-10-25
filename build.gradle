@@ -4,6 +4,7 @@ plugins {
 
 group 'com.github.kolegran'
 version '1.0-SNAPSHOT'
+sourceCompatibility = '14'
 
 repositories {
     mavenCentral()
@@ -15,7 +16,7 @@ ext {
 }
 
 dependencies {
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.0'
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.13.0"
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
     implementation "ch.qos.logback:logback-classic:1.2.6"
     testImplementation "org.slf4j:slf4j-simple:$slf4jVersion"
