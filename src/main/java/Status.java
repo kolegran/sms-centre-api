@@ -1,5 +1,7 @@
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 public class Status {
 
     @JsonProperty("status")
@@ -99,6 +101,19 @@ public class Status {
     public Integer getSmsCount() { return smsCount; }
 
     public void setSmsCount(Integer smsCount) { this.smsCount = smsCount; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Status status1 = (Status) o;
+        return Objects.equals(status, status1.status) && Objects.equals(lastDate, status1.lastDate) && Objects.equals(lastTimestamp, status1.lastTimestamp) && Objects.equals(errorCode, status1.errorCode) && Objects.equals(sendDate, status1.sendDate) && Objects.equals(sendTimestamp, status1.sendTimestamp) && Objects.equals(phone, status1.phone) && Objects.equals(cost, status1.cost) && Objects.equals(senderId, status1.senderId) && Objects.equals(statusName, status1.statusName) && Objects.equals(message, status1.message) && Objects.equals(comment, status1.comment) && Objects.equals(type, status1.type) && Objects.equals(smsCount, status1.smsCount);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(status, lastDate, lastTimestamp, errorCode, sendDate, sendTimestamp, phone, cost, senderId, statusName, message, comment, type, smsCount);
+    }
 
     @Override
     public String toString() {
