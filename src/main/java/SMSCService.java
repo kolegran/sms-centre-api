@@ -119,8 +119,8 @@ public class SMSCService {
      /**
      * Get the status of a sent SMS or HLR request
      *
-     * @param id          List of phones through comma or semicolon
-     * @param phone       The message to be send
+     * @param id          Message ID
+     * @param phone       Phone number in international format
      * @param all         Completeness of information in the status (0, 1 or 2)
      * @return The resultant Status object
      * <p>
