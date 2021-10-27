@@ -116,46 +116,20 @@ public class SMSCService {
         return m;
     }
 
-    /**
+     /**
      * Get the status of a sent SMS or HLR request
      *
-     * @param id    Message ID
-     * @param phone Phone number
-     * @param all   Additionally, the elements at the end of the array are returned:
-     *              (<sending time>, <phone number>, <cost>, <sender id>, <status>, <massage text>)
-     * @return The resultant String array
+     * @param id          Message ID
+     * @param phone       Phone number in international format
+     * @param all         Completeness of information in the status (0, 1 or 2)
+     * @return The resultant Status object
      * <p>
-     * (<status>, <change time>, <sms error code>) for sent SMS
+     * Status object in case of successful sending
      * <p>
-     * (<status>, <change time>, <sms error code>, <country code of registration>, <subscriber operator code>,
-     * <country name of registration>, <subscriber operator name>, <roaming country name>, <roaming operator name>,
-     * <SIM card IMSI code>, <service center number>) for HLR request
-     * <p>
-     * (0, <error code>) in case of error
+     * (<id>, <error code>) in case of error
      */
-    public String[] getStatus(int id, String phone, int all) {
-        String[] m = {};
-        String tmp;
-
-        m = send(ApiMethod.STATUS.getMethod(), null, "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
-
-        if (m.length > 1) {
-            if (debug) {
-                if (m[1] != "" && Integer.parseInt(m[1]) >= 0) {
-                    java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(Integer.parseInt(m[1]));
-                    System.out.println("SMS status: " + m[0]);
-                } else
-                    System.out.println("Error code" + Math.abs(Integer.parseInt(m[1])));
-            }
-
-            if (all == 1 && m.length > 9 && (m.length < 14 || m[14] != "HLR")) {
-                tmp = implode(m, ",");
-                m = tmp.split(",", 9);
-            }
-        } else
-            System.out.println("Server is not responding");
-
-        return m;
+    public Status getStatus(int id, String phone, int all) {
+        return send(ApiMethod.STATUS.getMethod(), Status.class, "phone=" + encode(phone) + "&id=" + id + "&all=" + all);
     }
 
     /**
@@ -280,18 +254,6 @@ public class SMSCService {
 
     private MessagingError parseError(String responseBody) throws JsonProcessingException {
         return objectMapper.readValue(responseBody, MessagingError.class);
-    }
-
-    private String implode(String[] ary, String delim) {
-        String out = "";
-
-        for (int i = 0; i < ary.length; i++) {
-            if (i != 0)
-                out += delim;
-            out += ary[i];
-        }
-
-        return out;
     }
 
     private String encode(String str) {
