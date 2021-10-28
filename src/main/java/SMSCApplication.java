@@ -2,7 +2,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class SmsApplication {
+public class SMSCApplication {
 
     public static void main(String[] args) {
         final SMSCService smscService = SMSCService.newBuilder()
