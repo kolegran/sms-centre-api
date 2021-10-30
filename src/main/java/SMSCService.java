@@ -88,32 +88,25 @@ public class SMSCService {
      * @param format          MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
-     * @return The resultant String array
+     * @return The resultant SmsCost object
      * <p>
      * (<cost>, <amount of sms>) in case of successful sending
      * <p>
      * (0, <error code>) in case of error
      */
-    public String[] getSmsCost(String phones, String message, int transliteration, int format, String sender, String query) {
-        String[] formats = {"", "flash=1", "push=1", "hlr=1", "bin=1", "bin=2", "ping=1", "mms=1", "mail=1", "call=1", "viber=1", "soc=1"};
-        String[] m = {};
+    public SmsCost getSmsCost(String phones, String message, int transliteration, MessageFormat format, String sender, String query) {
 
-        m = send(ApiMethod.SEND.getMethod(), null,"cost=1&phones=" + encode(phones)
+        SmsCost response = send(ApiMethod.SEND.getMethod(), SmsCost.class,"cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
-            + "&translit=" + transliteration + (format > 0 ? "&" + formats[format] : "")
-            + (sender == "" ? "" : "&sender=" + encode(sender))
-            + (query == "" ? "" : "&" + query));
+            + "&translit=" + transliteration + "&format=" + format.getFormat()
+            + (sender.isEmpty() ? "" : "&sender=" + encode(sender))
+            + (query.isEmpty() ? "" : "&" + query));
 
-        if (m.length > 1) {
-            if (debug) {
-                if (Integer.parseInt(m[1]) > 0)
-                    System.out.println("Cost of mailing: " + m[0] + ", Amount of SMS: " + m[1]);
-            } else
-                System.out.print("Error code " + Math.abs(Integer.parseInt(m[1])));
-        } else {
-            System.out.println("Server is not responding");
+        if (response.getCost() == null) {
+            LOGGER.error("Server is not responding");
+            throw new NoConnectionException("Server is not responding. Try again later");
         }
-        return m;
+        return response;
     }
 
      /**

@@ -29,5 +29,15 @@ public class SMSCApplication {
 
         final Status status = smscService.getStatus(1, "+380633660341", 1);
         System.out.println(status.toString());
+
+        final SmsCost smsCost = smscService.getSmsCost(
+            "+380984327826, +380931010800",
+            "Something",
+            0,
+            MessageFormat.WITHOUT_FORMAT,
+            "+380633660341",
+            ""
+        );
+        System.out.println(smsCost.toString());
     }
 }

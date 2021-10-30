@@ -5,24 +5,24 @@ import java.util.Objects;
 public class SmsCost {
 
     @JsonProperty("cost")
-    private Integer cost;
+    private Double cost;
 
     @JsonProperty("cnt")
-    private Integer count;
+    private Double count;
 
-    public Integer getCost() {
+    public Double getCost() {
         return cost;
     }
 
-    public void setCost(Integer cost) {
+    public void setCost(Double cost) {
         this.cost = cost;
     }
 
-    public Integer getCount() {
+    public Double getCount() {
         return count;
     }
 
-    public void setCount(Integer count) {
+    public void setCount(Double count) {
         this.count = count;
     }
 
