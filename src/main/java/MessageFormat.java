@@ -1,16 +1,16 @@
 /**
- * Enumerarion used with SMSCServirce class for choice
+ * Enumeration used with SMSCService class for choice
  * format of message that will be sent to recipient
  */
 public enum MessageFormat {
 
     /**
-     * The argument in HTTP request to API which means choice SMS messaging format
+     * The argument in HTTP request which means choice SMS messaging format
      */
     SMS("sms=1"),
 
     /**
-     * The argument in HTTP request to API which means sending a message via Viber
+     * The argument in HTTP request which means sending a message via Viber
      */
     VIBER("viber=1"),
 
@@ -20,7 +20,7 @@ public enum MessageFormat {
     FLASH_ORDINARY("flash=0"),
 
     /**
-     * The argument in HTTP request to API which means sending
+     * The argument in HTTP request which means sending
      * a flash message that appears on the recipient's phone screen
      */
     FLASH("flash=1"),
@@ -28,10 +28,10 @@ public enum MessageFormat {
     /**
      * The default value of "push" flag which means sending simple message
      */
-    PUSH_ORDINARY("push=0"),
+    PUSH_ORDINARY("push=0"),    // TODO: what a simple message. Check this case
 
     /**
-     * The argument in HTTP request to API which means sending a push-notification
+     * The argument in HTTP request which means sending a push-notification
      */
     WAP_PUSH("push=1"),
 
@@ -41,7 +41,7 @@ public enum MessageFormat {
     HLR_ORDINARY("hlr=0"),
 
     /**
-     * The argument in HTTP request to API which means sending a HLR request
+     * The argument in HTTP request which means sending a HLR request
      */
     HLR("hlr=1"),
 
@@ -51,12 +51,12 @@ public enum MessageFormat {
     BIN_ORDINARY("bin=0"),
 
     /**
-     * The argument in HTTP request to API which means sending a binary message
+     * The argument in HTTP request which means sending a binary message
      */
     BIN("bin=1"),
 
     /**
-     * The argument in HTTP request to API which means sending a binary message in hex format
+     * The argument in HTTP request which means sending a binary message in hex format
      */
     BIN_HEX("bin=2"),
 
@@ -66,7 +66,7 @@ public enum MessageFormat {
     PING_ORDINARY("ping=0"),
 
     /**
-     * The argument in HTTP request to API which means sending
+     * The argument in HTTP request which means sending
      * a ping-SMS that does not appear on the recipient's phone
      */
     PING_SMS("ping=1"),
@@ -77,7 +77,7 @@ public enum MessageFormat {
     MMS_ORDINARY("mms=0"),
 
     /**
-     * The argument in HTTP request to API which means sending a message with attachment
+     * The argument in HTTP request which means sending a message with attachment
      */
     MMS("mms=1"),
 
@@ -87,7 +87,7 @@ public enum MessageFormat {
     E_MAIL_ORDINARY("mail=0"),
 
     /**
-     * The argument in HTTP request to API which means sending an email message
+     * The argument in HTTP request which means sending an email
      */
     E_MAIL("mail=1"),
 
@@ -97,7 +97,7 @@ public enum MessageFormat {
     CALL_ORDINARY("call=0"),
 
     /**
-     * The argument in HTTP request to API which means sending
+     * The argument in HTTP request which means sending
      * a voice-generated message or audio file
      */
     CALL("call=1"),
@@ -108,14 +108,14 @@ public enum MessageFormat {
     SOC_ORDINARY("soc=0"),
 
     /**
-     * The argument in HTTP request to API which means sending a social network message
+     * The argument in HTTP request which means sending a social network message
      */
     SOC("soc=1"),
 
     /**
-     * The value that uses in HTTP request to server for use messages without formatting
+     * The value that uses in HTTP request for use messages without format
      */
-    WITHOUT_FORMAT("")
+    WITHOUT_FORMAT("")  // TODO: check this case
     ;
 
     private final String format;

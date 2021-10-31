@@ -10,7 +10,6 @@ public class SMSCApplication {
             .password("82fb0d5563570d17d1f48d0d243604823c687243")
             .protocol(Protocol.HTTP)
             .charset(StandardCharsets.UTF_8.name())
-            .debug(true)
             .build();
 
         System.out.println(smscService.getBalance());

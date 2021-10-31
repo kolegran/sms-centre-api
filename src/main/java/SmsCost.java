@@ -1,14 +1,16 @@
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SmsCost {
 
     @JsonProperty("cost")
     private Double cost;
 
     @JsonProperty("cnt")
-    private Double count;
+    private Double messagesCount;
 
     public Double getCost() {
         return cost;
@@ -18,12 +20,12 @@ public class SmsCost {
         this.cost = cost;
     }
 
-    public Double getCount() {
-        return count;
+    public Double getMessagesCount() {
+        return messagesCount;
     }
 
-    public void setCount(Double count) {
-        this.count = count;
+    public void setMessagesCount(Double messagesCount) {
+        this.messagesCount = messagesCount;
     }
 
     @Override
@@ -31,19 +33,20 @@ public class SmsCost {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SmsCost smsCost = (SmsCost) o;
-        return Objects.equals(cost, smsCost.cost) && Objects.equals(count, smsCost.count);
+        return Objects.equals(cost, smsCost.cost) &&
+            Objects.equals(messagesCount, smsCost.messagesCount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cost, count);
+        return Objects.hash(cost, messagesCount);
     }
 
     @Override
     public String toString() {
         return "SmsCost{" +
             "cost=" + cost +
-            ", count=" + count +
+            ", count=" + messagesCount +
             '}';
     }
 }

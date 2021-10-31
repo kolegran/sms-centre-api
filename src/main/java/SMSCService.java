@@ -27,7 +27,6 @@ public class SMSCService {
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final int NUMBER_OF_PATTERN_APPLYING = 2;
     private static final String SPLIT_URL_REGEX = "\\?";
-    private static final boolean DEFAULT_DEBUG = false;
     private static final boolean SMSC_POST = false;
     private static final int MAX_RETRIES_COUNT = 5;
     private static final int URL_MAX_LENGTH = 2000;
@@ -39,15 +38,13 @@ public class SMSCService {
     private final String login;
     private final String password;
     private final String charset;
-    private final Boolean debug;
     private final Protocol protocol;
 
-    private SMSCService(String login, String password, Protocol protocol, String charset, Boolean debug) {
+    private SMSCService(String login, String password, Protocol protocol, String charset) {
         this.login = login;
         this.password = password;
         this.protocol = protocol;
         this.charset = charset;
-        this.debug = debug;
     }
 
     /**
@@ -68,15 +65,12 @@ public class SMSCService {
      * (<id>, <error code>) in case of error
      */
     public MailingCost send(String phones, String message, int transliteration, String time, String id, MessageFormat messageFormat, String sender, String query) {
-        final String format = messageFormat.getFormat();
-        final String formatToSend = format.isEmpty() ? EMPTY : "&" + format;
-
         return send(ApiMethod.SEND.getMethod(), MailingCost.class, "cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
-            + "&translit=" + transliteration + "&id=" + id + formatToSend
+            + "&translit=" + transliteration + "&id=" + id + getFormatOrEmpty(messageFormat)
             + (sender.isEmpty() ? EMPTY : "&sender=" + encode(sender))
             + (time.isEmpty() ? EMPTY : "&time=" + encode(time))
-            + (query.isEmpty() ? EMPTY : "&" + encode(query)));
+            + (query.isEmpty() ? EMPTY : "&" + encode(query))); // TODO: add query
     }
 
     /**
@@ -85,7 +79,7 @@ public class SMSCService {
      * @param phones          List of phones through comma or semicolon
      * @param message         The message to be send
      * @param transliteration Converting into transliteration (0, 1 or 2)
-     * @param format          MessageFormat
+     * @param messageFormat   MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
      * @return The resultant SmsCost object
@@ -94,22 +88,15 @@ public class SMSCService {
      * <p>
      * (0, <error code>) in case of error
      */
-    public SmsCost getSmsCost(String phones, String message, int transliteration, MessageFormat format, String sender, String query) {
-
-        SmsCost response = send(ApiMethod.SEND.getMethod(), SmsCost.class,"cost=1&phones=" + encode(phones)
+    public SmsCost getSmsCost(String phones, String message, int transliteration, MessageFormat messageFormat, String sender, String query) {
+        return send(ApiMethod.SEND.getMethod(), SmsCost.class,"cost=1&phones=" + encode(phones)
             + "&mes=" + encode(message)
-            + "&translit=" + transliteration + "&format=" + format.getFormat()
-            + (sender.isEmpty() ? "" : "&sender=" + encode(sender))
-            + (query.isEmpty() ? "" : "&" + query));
-
-        if (response.getCost() == null) {
-            LOGGER.error("Server is not responding");
-            throw new NoConnectionException("Server is not responding. Try again later");
-        }
-        return response;
+            + "&translit=" + transliteration + "&format=" + getFormatOrEmpty(messageFormat)
+            + (sender.isEmpty() ? EMPTY : "&sender=" + encode(sender))
+            + (query.isEmpty() ? EMPTY : "&" + encode(query)));
     }
 
-     /**
+    /**
      * Get the status of a sent SMS or HLR request
      *
      * @param id          Message ID
@@ -258,13 +245,17 @@ public class SMSCService {
         }
     }
 
+    private String getFormatOrEmpty(MessageFormat messageFormat) {
+        final String format = messageFormat.getFormat();
+        return format.isEmpty() ? EMPTY : "&" + format;
+    }
+
     public static class Builder {
 
         private String password;
         private String login;
         private String charset;
         private Protocol protocol;
-        private Boolean debug;
 
         public Builder login(String login) {
             this.login = login;
@@ -286,17 +277,12 @@ public class SMSCService {
             return this;
         }
 
-        public Builder debug(Boolean debug) {
-            this.debug = debug;
-            return this;
-        }
-
         public SMSCService build() {
-            return new SMSCService(this.login, this.password, this.protocol, this.charset, this.debug);
+            return new SMSCService(this.login, this.password, this.protocol, this.charset);
         }
 
         public SMSCService build(String login, String password) {
-            return new SMSCService(login, password, Protocol.HTTP, DEFAULT_CHARSET, DEFAULT_DEBUG);
+            return new SMSCService(login, password, Protocol.HTTP, DEFAULT_CHARSET);
         }
     }
 }
