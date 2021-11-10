@@ -1,5 +1,7 @@
+package com.github.kpteam;
+
 /**
- * Enumeration used with SMSCService class for choice
+ * Enumeration used with com.github.kpteam.simple.SMSCService class for choice
  * format of message that will be sent to recipient
  */
 public enum MessageFormat {

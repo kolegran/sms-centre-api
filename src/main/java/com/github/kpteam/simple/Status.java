@@ -1,3 +1,5 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -188,7 +190,7 @@ public class Status {
 
     @Override
     public String toString() {
-        return "Status{" +
+        return "com.github.kpteam.simple.Status{" +
             "status=" + status +
             ", lastDate='" + lastDate + '\'' +
             ", lastTimestamp='" + lastTimestamp + '\'' +

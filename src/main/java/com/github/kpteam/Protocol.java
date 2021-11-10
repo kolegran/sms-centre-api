@@ -1,3 +1,5 @@
+package com.github.kpteam;
+
 public enum Protocol {
 
     HTTP("http"),

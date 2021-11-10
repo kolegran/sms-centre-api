@@ -1,12 +1,17 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import exception.APIServerException;
-import exception.CannotParseMessageException;
-import exception.CannotSendMessageException;
-import exception.CharsetEncodingException;
-import exception.InterruptSendingException;
-import exception.NoConnectionException;
+import com.github.kpteam.ApiMethod;
+import com.github.kpteam.MessageFormat;
+import com.github.kpteam.Protocol;
+import com.github.kpteam.exception.APIServerException;
+import com.github.kpteam.exception.CannotParseMessageException;
+import com.github.kpteam.exception.CannotSendMessageException;
+import com.github.kpteam.exception.CharsetEncodingException;
+import com.github.kpteam.exception.InterruptSendingException;
+import com.github.kpteam.exception.NoConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,10 +60,10 @@ public class SMSCService {
      * @param transliteration Converting into transliteration (0, 1 or 2)
      * @param time            Required delivery time (DDMMYYhhmm, h1-h2, 0ts, +m)
      * @param id              Message ID
-     * @param messageFormat   MessageFormat
+     * @param messageFormat   com.github.kpteam.MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
-     * @return The resultant MailingCost object
+     * @return The resultant com.github.kpteam.simple.MailingCost object
      * <p>
      * (<id>, <amount of sms>, <cost>, <balance>) in case of successful sending
      * <p>
@@ -79,10 +84,10 @@ public class SMSCService {
      * @param phones          List of phones through comma or semicolon
      * @param message         The message to be send
      * @param transliteration Converting into transliteration (0, 1 or 2)
-     * @param messageFormat   MessageFormat
+     * @param messageFormat   com.github.kpteam.MessageFormat
      * @param sender          Sender name. To disable Sender ID pass an empty string or dot as the name
      * @param query           Additional request parameters
-     * @return The resultant SmsCost object
+     * @return The resultant com.github.kpteam.simple.SmsCost object
      * <p>
      * (<cost>, <amount of sms>) in case of successful sending
      * <p>
@@ -102,9 +107,9 @@ public class SMSCService {
      * @param id          Message ID
      * @param phone       Phone number in international format
      * @param all         Completeness of information in the status (0, 1 or 2)
-     * @return The resultant Status object
+     * @return The resultant com.github.kpteam.simple.Status object
      * <p>
-     * Status object in case of successful sending
+     * com.github.kpteam.simple.Status object in case of successful sending
      * <p>
      * (<id>, <error code>) in case of error
      */
@@ -120,7 +125,7 @@ public class SMSCService {
     public Balance getBalance() { return send(ApiMethod.BALANCE.getMethod(), Balance.class, "cur=true"); }
 
     /**
-     * Create Builder for SMSCService
+     * Create Builder for com.github.kpteam.simple.SMSCService
      *
      * @return The resultant Builder
      */
@@ -134,7 +139,7 @@ public class SMSCService {
      * @param apiMethod  Required command
      * @param args Additional arguments
      * @return The resultant Generic
-     * @throws CharsetEncodingException may produce by SMSCService#encode(java.lang.String)
+     * @throws CharsetEncodingException may produce by com.github.kpteam.simple.SMSCService#encode(java.lang.String)
      */
     private <T> T send(String apiMethod, Class<T> classType, String args) {
         final String url = protocol.getName() + "://smsc.ua/sys/" + apiMethod + ".php?login=" + encode(login)
@@ -145,7 +150,7 @@ public class SMSCService {
     }
 
     /**
-     * Select URL to another server (ex. www2.smsc.ua) and then calling SMSCService#send(java.lang.String)
+     * Select URL to another server (ex. www2.smsc.ua) and then calling com.github.kpteam.simple.SMSCService#send(java.lang.String)
      *
      * @param url          API URL
      * @param retriesCount Count of retries

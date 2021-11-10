@@ -1,3 +1,10 @@
+package com.github.kpteam;
+
+import com.github.kpteam.simple.MailingCost;
+import com.github.kpteam.simple.SMSCService;
+import com.github.kpteam.simple.SmsCost;
+import com.github.kpteam.simple.Status;
+
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

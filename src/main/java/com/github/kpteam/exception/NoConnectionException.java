@@ -1,4 +1,4 @@
-package exception;
+package com.github.kpteam.exception;
 
 public class NoConnectionException extends RuntimeException {
 

@@ -1,3 +1,5 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -43,7 +45,7 @@ public class Balance {
 
     @Override
     public String toString() {
-        return "Balance{" +
+        return "com.github.kpteam.simple.Balance{" +
                 "balance=" + balance +
                 ", currency='" + currency + '\'' +
                 '}';

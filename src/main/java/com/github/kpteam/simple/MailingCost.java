@@ -1,3 +1,5 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -68,7 +70,7 @@ public class MailingCost {
 
     @Override
     public String toString() {
-        return "MailingCost{" +
+        return "com.github.kpteam.simple.MailingCost{" +
             "id='" + id + '\'' +
             ", cost=" + cost +
             ", messagesCount=" + messagesCount +

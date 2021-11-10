@@ -1,3 +1,5 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -50,7 +52,7 @@ public class MessagingError {
 
     @Override
     public String toString() {
-        return "MessagingError{" +
+        return "com.github.kpteam.simple.MessagingError{" +
             "error='" + error + '\'' +
             ", errorCode=" + errorCode +
             '}';

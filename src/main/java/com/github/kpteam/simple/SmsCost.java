@@ -1,3 +1,5 @@
+package com.github.kpteam.simple;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -44,7 +46,7 @@ public class SmsCost {
 
     @Override
     public String toString() {
-        return "SmsCost{" +
+        return "com.github.kpteam.simple.SmsCost{" +
             "cost=" + cost +
             ", count=" + messagesCount +
             '}';
